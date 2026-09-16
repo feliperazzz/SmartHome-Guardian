@@ -32,7 +32,7 @@ Para garantir a entrega do TCC em 4 meses, o desenvolvimento mobile seguirá as 
 - [x] Criação da identidade visual (Azul escuro, Verde, Branco e Vermelho).
 - [x] Protótipos das telas no Figma.
 - [x] Configuração inicial do repositório Flutter.
-- [ ] **Meta da Semana:** Concluir a UI da Tela de Login.
+- [x] **Meta da Semana:** Concluir a UI da Tela de Login.
 
 ### Estruturação Visual (Front-end Mobile)
 O objetivo deste mês é ter todas as 5 telas prontas, com navegação fluida, operando com dados "mockados" (falsos) para testes de usabilidade.
