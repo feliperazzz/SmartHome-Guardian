@@ -1,5 +1,7 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:mobile/screens/signup_screen.dart';
+import 'package:mobile/screens/forgot_password_screen.dart';
+import 'package:mobile/screens/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,13 +39,11 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
 
-    // Grid dinâmico — luz viajante (ciclo de 6s)
     _gridController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
     )..repeat();
 
-    // Flutuação da logo
     _floatController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -53,7 +53,6 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
 
-    // Breathing da logo (escala pulsante sutil)
     _breathController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -63,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _breathController, curve: Curves.easeInOut),
     );
 
-    // Entrada dos elementos
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -161,7 +159,14 @@ class _LoginScreenState extends State<LoginScreen>
   void _handleLogin() {
     setState(() => _isLoading = true);
     Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
       setState(() => _isLoading = false);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DashboardScreen(),
+        ),
+      );
     });
   }
 
@@ -170,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ===== FUNDO COM GRADIENTE =====
+          // ===== FUNDO =====
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -184,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // GRID DINÂMICO COM LUZ VIAJANTE 
+          // ===== GRID DINÂMICO =====
           AnimatedBuilder(
             animation: _gridController,
             builder: (context, child) {
@@ -197,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen>
             },
           ),
 
-          // CONTEÚDO
+          // ===== CONTEÚDO =====
           SafeArea(
             child: SingleChildScrollView(
               child: ConstrainedBox(
@@ -242,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 24),
 
-                      //  TÍTULO
+                      // ===== TÍTULO =====
                       FadeTransition(
                         opacity: _logoOpacity,
                         child: const Text(
@@ -258,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 6),
 
-                      // SUBTÍTULO 
+                      // ===== SUBTÍTULO =====
                       FadeTransition(
                         opacity: _formOpacity,
                         child: const Text(
@@ -273,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 36),
 
-                      //  CAMPO DE E-MAIL 
+                      // ===== CAMPO DE E-MAIL =====
                       FadeTransition(
                         opacity: _formOpacity,
                         child: SlideTransition(
@@ -284,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 14),
 
-                      //  CAMPO DE SENHA 
+                      // ===== CAMPO DE SENHA =====
                       FadeTransition(
                         opacity: _formOpacity,
                         child: SlideTransition(
@@ -295,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 28),
 
-                      // BOTÃO ENTRAR 
+                      // ===== BOTÃO ENTRAR =====
                       FadeTransition(
                         opacity: _buttonOpacity,
                         child: SlideTransition(
@@ -306,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 16),
 
-                      //  BOTÃO BIOMETRIA 
+                      // ===== BOTÃO BIOMETRIA =====
                       FadeTransition(
                         opacity: _bioOpacity,
                         child: SlideTransition(
@@ -317,11 +322,19 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 16),
 
-                      // ESQUECI MINHA SENHA
+                      // ===== ESQUECI MINHA SENHA =====
                       FadeTransition(
                         opacity: _bioOpacity,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
                           child: const Text(
                             'Esqueci minha senha',
                             style: TextStyle(
@@ -335,7 +348,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 20),
 
-                      // DIVISOR 
+                      // ===== DIVISOR =====
                       FadeTransition(
                         opacity: _bioOpacity,
                         child: Row(
@@ -366,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 20),
 
-                      //  CADASTRE-SE 
+                      // ===== CADASTRE-SE =====
                       FadeTransition(
                         opacity: _bioOpacity,
                         child: Row(
@@ -380,7 +393,15 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SignupScreen(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 'Cadastre-se',
                                 style: TextStyle(
@@ -406,7 +427,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  //  CAMPO DE E-MAIL 
+  // ===== CAMPO DE E-MAIL =====
   Widget _buildEmailField() {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -436,8 +457,8 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           filled: true,
           fillColor: const Color(0xFF111923),
-          prefixIcon:
-              const Icon(Icons.email_outlined, color: Color(0xFF4DB6AC), size: 20),
+          prefixIcon: const Icon(Icons.email_outlined,
+              color: Color(0xFF4DB6AC), size: 20),
           contentPadding:
               const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           border: OutlineInputBorder(
@@ -457,7 +478,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  //  CAMPO DE SENHA 
+  // ===== CAMPO DE SENHA =====
   Widget _buildPasswordField() {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -482,8 +503,8 @@ class _LoginScreenState extends State<LoginScreen>
           hintStyle: const TextStyle(color: Color(0xFF5A6B7A), fontSize: 14),
           filled: true,
           fillColor: const Color(0xFF111923),
-          prefixIcon:
-              const Icon(Icons.lock_outline, color: Color(0xFF4DB6AC), size: 20),
+          prefixIcon: const Icon(Icons.lock_outline,
+              color: Color(0xFF4DB6AC), size: 20),
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePassword
@@ -517,7 +538,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  //  BOTÃO ENTRAR COM LOADING 
+  // ===== BOTÃO ENTRAR =====
   Widget _buildGradientButton() {
     return SizedBox(
       width: double.infinity,
@@ -574,7 +595,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  //  BOTÃO BIOMETRIA 
+  // ===== BOTÃO BIOMETRIA =====
   Widget _buildBiometricButton() {
     return SizedBox(
       width: double.infinity,
@@ -619,7 +640,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-//  PAINTER: GRID DINÂMICO COM LUZ VIAJANTE 
+// ===== PAINTER: GRID DINÂMICO COM LUZ VIAJANTE =====
 class DynamicGridPainter extends CustomPainter {
   final double progress;
 
@@ -629,12 +650,10 @@ class DynamicGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const spacing = 35.0;
 
-    // Cor base das linhas (estáticas, muito sutis)
     final Paint linePaint = Paint()
       ..color = const Color(0xFF1A2535).withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
 
-    // Desenha todas as linhas do grid
     for (double x = 0; x < size.width; x += spacing) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
     }
@@ -642,54 +661,44 @@ class DynamicGridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
     }
 
-    // LUZ VIAJANTE 
-    // A luz percorre diagonalmente de cima-esquerda → baixo-direita
-    // criando um efeito de "scan" que atravessa o grid
-
     final double scanX = size.width * progress;
     final double scanY = size.height * progress;
-
-    // Largura da faixa de luz
     final double bandWidth = 120.0;
 
-    // FAIXA VERTICAL (luz que viaja horizontalmente) 
     for (double x = 0; x < size.width; x += spacing) {
       final double distance = (x - scanX).abs();
       if (distance < bandWidth) {
         final double intensity = 1.0 - (distance / bandWidth);
         final Paint glowLine = Paint()
-          ..color = const Color(0xFF4DB6AC).withValues(alpha: 0.15 * intensity)
+          ..color = const Color(0xFF4DB6AC)
+              .withValues(alpha: 0.15 * intensity)
           ..strokeWidth = 1.0 + intensity;
         canvas.drawLine(Offset(x, 0), Offset(x, size.height), glowLine);
       }
     }
-
-    //  FAIXA HORIZONTAL (luz que viaja verticalmente) 
     for (double y = 0; y < size.height; y += spacing) {
       final double distance = (y - scanY).abs();
       if (distance < bandWidth) {
         final double intensity = 1.0 - (distance / bandWidth);
         final Paint glowLine = Paint()
-          ..color = const Color(0xFF4DB6AC).withValues(alpha: 0.15 * intensity)
+          ..color = const Color(0xFF4DB6AC)
+              .withValues(alpha: 0.15 * intensity)
           ..strokeWidth = 1.0 + intensity;
         canvas.drawLine(Offset(0, y), Offset(size.width, y), glowLine);
       }
     }
 
-    // PONTO BRILHANTE no cruzamento da luz 
     final double crossX = (scanX / spacing).floor() * spacing;
     final double crossY = (scanY / spacing).floor() * spacing;
-
-    if (crossX >= 0 && crossX < size.width && crossY >= 0 && crossY < size.height) {
-      // Glow no cruzamento
+    if (crossX >= 0 &&
+        crossX < size.width &&
+        crossY >= 0 &&
+        crossY < size.height) {
       final Paint dotPaint = Paint()
         ..color = const Color(0xFF4DB6AC).withValues(alpha: 0.6)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
       canvas.drawCircle(Offset(crossX, crossY), 3, dotPaint);
-
-      // Núcleo brilhante
-      final Paint corePaint = Paint()
-        ..color = const Color(0xFF80CBC4);
+      final Paint corePaint = Paint()..color = const Color(0xFF80CBC4);
       canvas.drawCircle(Offset(crossX, crossY), 1.5, corePaint);
     }
   }
