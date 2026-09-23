@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:mobile/services/alerts_service.dart';
+=======
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
 
 class AlertsTab extends StatefulWidget {
   const AlertsTab({super.key});
@@ -71,19 +74,27 @@ class _AlertsTabState extends State<AlertsTab>
     final alerta = _alertasFiltrados[indexFiltrado];
     final originalIndex = _alertas.indexOf(alerta);
     setState(() => _alertas[originalIndex]['lido'] = true);
+<<<<<<< HEAD
     // Sincroniza com o card da Home
     AlertsService.instance.atualizarNaoLidos(_naoLidos);
+=======
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
   }
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
 
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+<<<<<<< HEAD
       CurvedAnimation(
         parent: _entranceController,
         curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
@@ -95,6 +106,15 @@ class _AlertsTabState extends State<AlertsTab>
         parent: _entranceController,
         curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
       ),
+=======
+      CurvedAnimation(parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+    );
+
+    _listOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOut)),
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
     );
 
     _entranceController.forward();
@@ -143,8 +163,11 @@ class _AlertsTabState extends State<AlertsTab>
                           alerta['lido'] = true;
                         }
                       });
+<<<<<<< HEAD
                       // Sincroniza com o card da Home
                       AlertsService.instance.atualizarNaoLidos(0);
+=======
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -191,8 +214,12 @@ class _AlertsTabState extends State<AlertsTab>
             child: _alertasFiltrados.isEmpty
                 ? const Center(
                     child: Text('Nenhum alerta neste filtro',
+<<<<<<< HEAD
                       style: TextStyle(
                         color: Color(0xFF6B7D8C), fontSize: 14)),
+=======
+                      style: TextStyle(color: Color(0xFF6B7D8C), fontSize: 14)),
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -311,8 +338,12 @@ class _AlertsTabState extends State<AlertsTab>
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
+<<<<<<< HEAD
                             color: const Color(0xFFFFB74D)
                                 .withValues(alpha: 0.15),
+=======
+                            color: const Color(0xFFFFB74D).withValues(alpha: 0.15),
+>>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text('NOVO',
