@@ -5,7 +5,14 @@ import 'tabs/rooms_tab.dart';
 import 'tabs/profile_tab.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final String nome;
+  final String email;
+
+  const DashboardScreen({
+    super.key,
+    this.nome = 'Rafael',
+    this.email = 'rafael@email.com',
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -91,11 +98,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                     opacity: _contentOpacity,
                     child: IndexedStack(
                       index: _currentTab,
-                      children: const [
-                        HomeTab(),
-                        AlertsTab(),
-                        RoomsTab(),
-                        ProfileTab(),
+                      children: [
+                        HomeTab(
+                          nome: widget.nome,
+                          onVerTodos: () => setState(() => _currentTab = 2),
+                          onAbrirAlertas: () => setState(() => _currentTab = 1),
+                        ),
+                        const AlertsTab(),
+                        const RoomsTab(),
+                        ProfileTab(nome: widget.nome, email: widget.email),
                       ],
                     ),
                   ),
