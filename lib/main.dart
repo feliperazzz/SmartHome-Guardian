@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/screens/splash_screen.dart';
+import 'package:mobile/services/device_service.dart';
 
-void main() {
+Future<void> main() async {
+  // Garante que o Flutter inicializou antes de acessar o armazenamento local
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Carrega os sensores/dispositivos salvos da sessão anterior
+  await DeviceService.instance.carregar();
+
   runApp(const SmartHomeGuardian());
 }
 

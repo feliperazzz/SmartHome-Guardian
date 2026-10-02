@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/screens/signup_screen.dart';
 import 'package:mobile/screens/forgot_password_screen.dart';
 import 'package:mobile/screens/dashboard_screen.dart';
+import 'package:mobile/services/user_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,10 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  // ===== ALTERAÇÃO 1: controller do e-mail =====
+  final TextEditingController _emailController = TextEditingController();
+
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _emailHasFocus = false;
@@ -151,9 +156,21 @@ class _LoginScreenState extends State<LoginScreen>
     _floatController.dispose();
     _breathController.dispose();
     _entranceController.dispose();
+    // ===== ALTERAÇÃO 2: libera o controller =====
+    _emailController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  // ===== ALTERAÇÃO 3: deriva o nome a partir do e-mail =====
+  String _nomeDoEmail(String email) {
+    if (email.isEmpty || !email.contains('@')) return 'Felipe';
+    final parte = email.split('@').first;
+    if (parte.isEmpty) return 'Felipe';
+    final primeira = parte[0].toUpperCase();
+    final resto = parte.length > 1 ? parte.substring(1).toLowerCase() : '';
+    return '$primeira$resto';
   }
 
   void _handleLogin() {
@@ -161,13 +178,44 @@ class _LoginScreenState extends State<LoginScreen>
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       setState(() => _isLoading = false);
+
+      // ===== ALTERAÇÃO 4: atualiza o UserService antes de entrar =====
+      UserService.instance.atualizar(
+        novoNome: _nomeDoEmail(_emailController.text.trim()),
+        novoEmail: _emailController.text.trim(),
+      );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const DashboardScreen(),
+          builder: (context) => DashboardScreen(
+            nome: UserService.instance.nome.value,
+          ),
         ),
       );
     });
+  }
+
+  // ===== BLOCO E: BIOMETRIA SIMULADA =====
+  void _handleBiometric() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _BiometricDialog(
+        onSuccess: _handleBiometricSuccess,
+      ),
+    );
+  }
+
+  void _handleBiometricSuccess() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DashboardScreen(
+          nome: UserService.instance.nome.value,
+        ),
+      ),
+    );
   }
 
   @override
@@ -244,7 +292,6 @@ class _LoginScreenState extends State<LoginScreen>
                           );
                         },
                       ),
-
                       const SizedBox(height: 24),
 
                       // ===== TÍTULO =====
@@ -260,7 +307,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 6),
 
                       // ===== SUBTÍTULO =====
@@ -275,7 +321,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 36),
 
                       // ===== CAMPO DE E-MAIL =====
@@ -286,7 +331,6 @@ class _LoginScreenState extends State<LoginScreen>
                           child: _buildEmailField(),
                         ),
                       ),
-
                       const SizedBox(height: 14),
 
                       // ===== CAMPO DE SENHA =====
@@ -297,7 +341,6 @@ class _LoginScreenState extends State<LoginScreen>
                           child: _buildPasswordField(),
                         ),
                       ),
-
                       const SizedBox(height: 28),
 
                       // ===== BOTÃO ENTRAR =====
@@ -308,7 +351,6 @@ class _LoginScreenState extends State<LoginScreen>
                           child: _buildGradientButton(),
                         ),
                       ),
-
                       const SizedBox(height: 16),
 
                       // ===== BOTÃO BIOMETRIA =====
@@ -319,7 +361,6 @@ class _LoginScreenState extends State<LoginScreen>
                           child: _buildBiometricButton(),
                         ),
                       ),
-
                       const SizedBox(height: 16),
 
                       // ===== ESQUECI MINHA SENHA =====
@@ -345,7 +386,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
                       // ===== DIVISOR =====
@@ -376,7 +416,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
                       // ===== CADASTRE-SE =====
@@ -414,7 +453,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -445,6 +483,8 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       child: TextField(
         focusNode: _emailFocusNode,
+        // ===== ALTERAÇÃO 1 (parte 2): controller ligado ao campo =====
+        controller: _emailController,
         keyboardType: TextInputType.emailAddress,
         style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 15),
         decoration: InputDecoration(
@@ -613,7 +653,7 @@ class _LoginScreenState extends State<LoginScreen>
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            onTap: () {},
+            onTap: _handleBiometric,
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -643,13 +683,11 @@ class _LoginScreenState extends State<LoginScreen>
 // ===== PAINTER: GRID DINÂMICO COM LUZ VIAJANTE =====
 class DynamicGridPainter extends CustomPainter {
   final double progress;
-
   DynamicGridPainter({required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
     const spacing = 35.0;
-
     final Paint linePaint = Paint()
       ..color = const Color(0xFF1A2535).withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
@@ -705,4 +743,94 @@ class DynamicGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// ===== BLOCO E: DIALOG DE BIOMETRIA SIMULADA =====
+class _BiometricDialog extends StatefulWidget {
+  final VoidCallback onSuccess;
+  const _BiometricDialog({required this.onSuccess});
+
+  @override
+  State<_BiometricDialog> createState() => _BiometricDialogState();
+}
+
+class _BiometricDialogState extends State<_BiometricDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onSuccess();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF111923),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 1.0 + _pulseController.value * 0.08,
+                  child: Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          const Color(0xFF4DB6AC).withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: const Color(0xFF4DB6AC)
+                            .withValues(alpha: 0.4),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(Icons.fingerprint,
+                        size: 64, color: Color(0xFF4DB6AC)),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            const Text('Escaneando digital...',
+              style: TextStyle(fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFE8EAED))),
+            const SizedBox(height: 6),
+            const Text('Aproxime o dedo do sensor',
+              style: TextStyle(fontSize: 12,
+                color: Color(0xFF8B9DAB))),
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(
+              color: Color(0xFF4DB6AC),
+              backgroundColor: Color(0xFF1E2A38),
+              minHeight: 4,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
