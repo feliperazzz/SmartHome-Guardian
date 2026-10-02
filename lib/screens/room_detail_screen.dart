@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/services/device_service.dart';
 import 'package:mobile/services/system_service.dart';
 
 class RoomDetailScreen extends StatefulWidget {
@@ -22,39 +23,88 @@ class RoomDetailScreen extends StatefulWidget {
 class _RoomDetailScreenState extends State<RoomDetailScreen> {
   late bool _ambienteSeguro;
 
-  // ===== DISPOSITIVOS DO AMBIENTE =====
-  final List<Map<String, dynamic>> _dispositivos = [];
-
   @override
   void initState() {
     super.initState();
     _ambienteSeguro = widget.seguro;
 
-    // Gera a lista inicial de dispositivos baseada no total de sensores
-    final tiposPadrao = [
-      {'nome': 'Câmera', 'icone': Icons.videocam_outlined},
-      {'nome': 'Sensor de fumaça', 'icone': Icons.smoke_free_outlined},
-      {'nome': 'Sensor de movimento', 'icone': Icons.directions_walk_outlined},
-    ];
-    for (int i = 0; i < widget.sensores; i++) {
-      final tipo = tiposPadrao[i % tiposPadrao.length];
-      _dispositivos.add({
-        'nome': tipo['nome'] as String,
-        'icone': tipo['icone'] as IconData,
-        'ativo': true,
-      });
+    // ===== FIX 1: se o ambiente ainda não tem dispositivos no
+    // DeviceService, cria os iniciais baseados no total de sensores =====
+    final temDispositivos = DeviceService
+        .instance.dispositivos.value
+        .any((d) => d['ambiente'] == widget.nome);
+    if (!temDispositivos && widget.sensores > 0) {
+      final tiposPadrao = ['camera', 'fumaca', 'movimento'];
+      for (int i = 0; i < widget.sensores; i++) {
+        DeviceService.instance.adicionarDispositivo(
+          nome: _nomeDoTipo(tiposPadrao[i % tiposPadrao.length]),
+          tipo: tiposPadrao[i % tiposPadrao.length],
+          ambiente: widget.nome,
+        );
+      }
     }
+  }
+
+  // ===== Dispositivos DESTE ambiente (do DeviceService, não local) =====
+  List<Map<String, dynamic>> get _dispositivos =>
+      DeviceService.instance.dispositivos.value
+          .where((d) => d['ambiente'] == widget.nome)
+          .toList();
+
+  String _nomeDoTipo(String tipo) {
+    switch (tipo) {
+      case 'camera':
+        return 'Câmera';
+      case 'fumaca':
+        return 'Sensor de fumaça';
+      case 'movimento':
+        return 'Sensor de movimento';
+      case 'porta':
+        return 'Sensor de porta';
+      case 'janela':
+        return 'Sensor de janela';
+      default:
+        return 'Sensor';
+    }
+  }
+
+  IconData _iconeDoTipo(String tipo) {
+    switch (tipo) {
+      case 'camera':
+        return Icons.videocam_outlined;
+      case 'fumaca':
+        return Icons.smoke_free_outlined;
+      case 'movimento':
+        return Icons.directions_walk_outlined;
+      case 'porta':
+        return Icons.door_sliding_outlined;
+      case 'janela':
+        return Icons.window_outlined;
+      default:
+        return Icons.sensors_outlined;
+    }
+  }
+
+  // ===== FIX 2: TODA saída devolve o estado pra RoomsTab =====
+  void _voltar() {
+    final int ativos =
+        _dispositivos.where((d) => d['ativo'] == true).length;
+    Navigator.pop(context, {
+      'seguro': _ambienteSeguro,
+      // FIX 3: devolve ATIVOS, não o total
+      'sensores': ativos,
+    });
   }
 
   // ===== ADICIONAR NOVO SENSOR (C3) =====
   void _adicionarSensor() {
     final controller = TextEditingController();
     final tipos = [
-      {'nome': 'Câmera', 'icone': Icons.videocam_outlined},
-      {'nome': 'Sensor de fumaça', 'icone': Icons.smoke_free_outlined},
-      {'nome': 'Sensor de movimento', 'icone': Icons.directions_walk_outlined},
-      {'nome': 'Sensor de porta', 'icone': Icons.door_sliding_outlined},
-      {'nome': 'Sensor de janela', 'icone': Icons.window_outlined},
+      {'tipo': 'camera', 'nome': 'Câmera'},
+      {'tipo': 'fumaca', 'nome': 'Sensor de fumaça'},
+      {'tipo': 'movimento', 'nome': 'Sensor de movimento'},
+      {'tipo': 'porta', 'nome': 'Sensor de porta'},
+      {'tipo': 'janela', 'nome': 'Sensor de janela'},
     ];
 
     showModalBottomSheet(
@@ -134,7 +184,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                             ),
                             child: Row(
                               children: [
-                                Icon(tipos[index]['icone'] as IconData,
+                                Icon(_iconeDoTipo(
+                                    tipos[index]['tipo'] as String),
                                   size: 16,
                                   color: selecionado
                                       ? const Color(0xFF0A1018)
@@ -177,7 +228,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                               'nome': nomeTipado.isNotEmpty
                                   ? nomeTipado
                                   : tipos[tipoSelecionado]['nome'] as String,
-                              'icone': tipos[tipoSelecionado]['icone'],
+                              'tipo': tipos[tipoSelecionado]['tipo'],
                             });
                           },
                           child: const Center(
@@ -200,19 +251,20 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
       },
     ).then((resultado) {
       if (resultado != null && resultado is Map) {
-        setState(() {
-          _dispositivos.add({
-            'nome': resultado['nome'] as String,
-            'icone': resultado['icone'] as IconData,
-            'ativo': true,
-          });
-        });
+        // Persiste no DeviceService (sobrevive ao fechamento do app)
+        DeviceService.instance.adicionarDispositivo(
+          nome: resultado['nome'] as String,
+          tipo: resultado['tipo'] as String,
+          ambiente: widget.nome,
+        );
+        setState(() {});
       }
     });
   }
 
   // ===== REMOVER SENSOR =====
   void _removerSensor(int index) {
+    final dispositivo = _dispositivos[index];
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -223,7 +275,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
         title: const Text('Remover sensor',
           style: TextStyle(color: Color(0xFFE8EAED), fontSize: 18)),
         content: Text(
-            'Remover "${_dispositivos[index]['nome']}" deste ambiente?',
+            'Remover "${dispositivo['nome']}" deste ambiente?',
           style: const TextStyle(color: Color(0xFF8B9DAB), fontSize: 14)),
         actions: [
           TextButton(
@@ -234,7 +286,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() => _dispositivos.removeAt(index));
+              DeviceService.instance.removerDispositivo(dispositivo);
+              setState(() {});
             },
             child: const Text('Remover',
               style: TextStyle(color: Color(0xFFEF5350))),
@@ -244,258 +297,155 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     );
   }
 
+  // ===== Alternar dispositivo no DeviceService =====
+  void _alternarDispositivo(Map<String, dynamic> dispositivo) {
+    final index =
+        DeviceService.instance.dispositivos.value.indexOf(dispositivo);
+    if (index >= 0) DeviceService.instance.alternarDispositivo(index);
+    setState(() {});
+  }
+
+  // ===== Toggle de proteção: persiste no DeviceService =====
+  void _toggleProtecao() {
+    setState(() => _ambienteSeguro = !_ambienteSeguro);
+    DeviceService.instance.definirSeguroAmbiente(
+        widget.nome, _ambienteSeguro);
+  }
+
   @override
   Widget build(BuildContext context) {
     final int ativos =
         _dispositivos.where((d) => d['ativo'] == true).length;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // ===== FUNDO =====
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF0A1018), Color(0xFF0C1420)],
+    // ===== FIX 2 (parte 2): captura TAMBÉM o voltar do sistema/gesto =====
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _voltar();
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // ===== FUNDO =====
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF0A1018), Color(0xFF0C1420)],
+                ),
               ),
             ),
-          ),
 
-          SafeArea(
-            child: Column(
-              children: [
-                // ===== HEADER =====
-                Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(8, 8, 20, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context, {
-                          'seguro': _ambienteSeguro,
-                          'sensores': _dispositivos.length,
-                        }),
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Color(0xFFE8EAED), size: 20),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color:
-                              const Color(0xFF4DB6AC).withValues(alpha: 0.12),
-                        ),
-                        child: Icon(widget.icon,
-                          size: 22, color: const Color(0xFF4DB6AC)),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(widget.nome,
-                        style: const TextStyle(fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFE8EAED))),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    child: Column(
+            SafeArea(
+              child: Column(
+                children: [
+                  // ===== HEADER =====
+                  Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(8, 8, 20, 0),
+                    child: Row(
                       children: [
-                        // ===== HERO DO AMBIENTE =====
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
+                        IconButton(
+                          onPressed: _voltar,
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Color(0xFFE8EAED), size: 20),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF111923),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: _ambienteSeguro
-                                  ? const Color(0xFF4DB6AC)
-                                      .withValues(alpha: 0.4)
-                                  : const Color(0xFFFFB74D)
-                                      .withValues(alpha: 0.4),
-                              width: 1),
-                            boxShadow: [
-                              BoxShadow(
+                            shape: BoxShape.circle,
+                            color:
+                                const Color(0xFF4DB6AC).withValues(alpha: 0.12),
+                          ),
+                          child: Icon(widget.icon,
+                            size: 22, color: const Color(0xFF4DB6AC)),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(widget.nome,
+                          style: const TextStyle(fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFE8EAED))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Column(
+                        children: [
+                          // ===== HERO DO AMBIENTE =====
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF111923),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
                                 color: _ambienteSeguro
                                     ? const Color(0xFF4DB6AC)
-                                        .withValues(alpha: 0.15)
+                                        .withValues(alpha: 0.4)
                                     : const Color(0xFFFFB74D)
-                                        .withValues(alpha: 0.15),
-                                blurRadius: 16),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: Icon(
-                                  _ambienteSeguro
-                                      ? Icons.verified_user_outlined
-                                      : Icons.warning_amber_outlined,
-                                  key: ValueKey(_ambienteSeguro),
-                                  size: 56,
+                                        .withValues(alpha: 0.4),
+                                width: 1),
+                              boxShadow: [
+                                BoxShadow(
                                   color: _ambienteSeguro
                                       ? const Color(0xFF4DB6AC)
-                                      : const Color(0xFFFFB74D),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: Text(
-                                  _ambienteSeguro
-                                      ? 'Ambiente protegido!'
-                                      : 'Atenção neste ambiente',
-                                  key: ValueKey(_ambienteSeguro),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                          .withValues(alpha: 0.15)
+                                      : const Color(0xFFFFB74D)
+                                          .withValues(alpha: 0.15),
+                                  blurRadius: 16),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Icon(
+                                    _ambienteSeguro
+                                        ? Icons.verified_user_outlined
+                                        : Icons.warning_amber_outlined,
+                                    key: ValueKey(_ambienteSeguro),
+                                    size: 56,
                                     color: _ambienteSeguro
-                                        ? const Color(0xFFE8EAED)
+                                        ? const Color(0xFF4DB6AC)
                                         : const Color(0xFFFFB74D),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$ativos de ${_dispositivos.length} dispositivos ativos',
-                                style: const TextStyle(fontSize: 12,
-                                  color: Color(0xFF8B9DAB)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ===== TOGGLE PROTEÇÃO DO AMBIENTE (C1 CORRIGIDO) =====
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF111923),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0xFF1E2A38), width: 1),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF4DB6AC)
-                                      .withValues(alpha: 0.12),
-                                ),
-                                child: const Icon(Icons.shield_outlined,
-                                  size: 20, color: Color(0xFF4DB6AC)),
-                              ),
-                              const SizedBox(width: 14),
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Proteção do ambiente',
-                                      style: TextStyle(fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFFE8EAED))),
-                                    SizedBox(height: 2),
-                                    Text(
-                                        'Monitoramento ativo neste comodo',
-                                      style: TextStyle(fontSize: 12,
-                                        color: Color(0xFF6B7D8C))),
-                                  ],
-                                ),
-                              ),
-                              // ===== TOGGLE CORRIGIDO =====
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _ambienteSeguro = !_ambienteSeguro;
-                                  });
-                                },
-                                child: AnimatedContainer(
-                                  duration:
-                                      const Duration(milliseconds: 200),
-                                  width: 44,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.circular(12),
-                                    color: _ambienteSeguro
-                                        ? const Color(0xFF4DB6AC)
-                                        : const Color(0xFF1E2A38),
-                                  ),
-                                  child: AnimatedAlign(
-                                    duration:
-                                        const Duration(milliseconds: 200),
-                                    alignment: _ambienteSeguro
-                                        ? Alignment.centerRight
-                                        : Alignment.centerLeft,
-                                    child: Container(
-                                      margin: const EdgeInsets.all(2),
-                                      width: 20,
-                                      height: 20,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.white,
-                                      ),
+                                const SizedBox(height: 12),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Text(
+                                    _ambienteSeguro
+                                        ? 'Ambiente protegido!'
+                                        : 'Atenção neste ambiente',
+                                    key: ValueKey(_ambienteSeguro),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: _ambienteSeguro
+                                          ? const Color(0xFFE8EAED)
+                                          : const Color(0xFFFFB74D),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ===== TÍTULO DISPOSITIVOS + ADICIONAR (C3) =====
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Dispositivos',
-                              style: TextStyle(fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFE8EAED))),
-                            GestureDetector(
-                              onTap: _adicionarSensor,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: const Color(0xFF4DB6AC)
-                                      .withValues(alpha: 0.12),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$ativos de ${_dispositivos.length} dispositivos ativos',
+                                  style: const TextStyle(fontSize: 12,
+                                    color: Color(0xFF8B9DAB)),
                                 ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.add, size: 16,
-                                      color: Color(0xFF4DB6AC)),
-                                    SizedBox(width: 4),
-                                    Text('Adicionar',
-                                      style: TextStyle(fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF4DB6AC))),
-                                  ],
-                                ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // ===== LISTA DE DISPOSITIVOS (C2 CORRIGIDO) =====
-                        ..._dispositivos.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final dispositivo = entry.value;
-                          final ativo = dispositivo['ativo'] as bool;
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
+                          ),
+                          const SizedBox(height: 16),
+                          // ===== TOGGLE PROTEÇÃO DO AMBIENTE (C1 CORRIGIDO) =====
+                          Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: const Color(0xFF111923),
@@ -509,61 +459,33 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: ativo
-                                        ? const Color(0xFF4DB6AC)
-                                            .withValues(alpha: 0.12)
-                                        : const Color(0xFF1E2A38),
+                                    color: const Color(0xFF4DB6AC)
+                                        .withValues(alpha: 0.12),
                                   ),
-                                  child: Icon(
-                                      dispositivo['icone'] as IconData,
-                                    size: 20,
-                                    color: ativo
-                                        ? const Color(0xFF4DB6AC)
-                                        : const Color(0xFF6B7D8C)),
+                                  child: const Icon(Icons.shield_outlined,
+                                    size: 20, color: Color(0xFF4DB6AC)),
                                 ),
                                 const SizedBox(width: 14),
-                                Expanded(
+                                const Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                          dispositivo['nome'] as String,
+                                      Text('Proteção do ambiente',
                                         style: TextStyle(fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: ativo
-                                              ? const Color(0xFFE8EAED)
-                                              : const Color(0xFF8B9DAB))),
-                                      const SizedBox(height: 2),
+                                          color: Color(0xFFE8EAED))),
+                                      SizedBox(height: 2),
                                       Text(
-                                          ativo
-                                              ? 'Ativo'
-                                              : 'Desativado',
+                                          'Monitoramento ativo neste comodo',
                                         style: TextStyle(fontSize: 12,
-                                          color: ativo
-                                              ? const Color(0xFF4DB6AC)
-                                              : const Color(0xFF6B7D8C))),
+                                          color: Color(0xFF6B7D8C))),
                                     ],
                                   ),
                                 ),
-                                // Ícone de remover
+                                // ===== TOGGLE (agora persiste) =====
                                 GestureDetector(
-                                  onTap: () => _removerSensor(index),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    child: const Icon(Icons.delete_outline,
-                                      size: 18,
-                                      color: Color(0xFF6B7D8C)),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                // ===== TOGGLE DO DISPOSITIVO (CORRIGIDO) =====
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      dispositivo['ativo'] = !ativo;
-                                    });
-                                  },
+                                  onTap: _toggleProtecao,
                                   child: AnimatedContainer(
                                     duration:
                                         const Duration(milliseconds: 200),
@@ -572,19 +494,18 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius:
                                           BorderRadius.circular(12),
-                                      color: ativo
+                                      color: _ambienteSeguro
                                           ? const Color(0xFF4DB6AC)
                                           : const Color(0xFF1E2A38),
                                     ),
                                     child: AnimatedAlign(
-                                      duration: const Duration(
-                                          milliseconds: 200),
-                                      alignment: ativo
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      alignment: _ambienteSeguro
                                           ? Alignment.centerRight
                                           : Alignment.centerLeft,
                                       child: Container(
-                                        margin:
-                                            const EdgeInsets.all(2),
+                                        margin: const EdgeInsets.all(2),
                                         width: 20,
                                         height: 20,
                                         decoration: const BoxDecoration(
@@ -597,18 +518,163 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                                 ),
                               ],
                             ),
-                          );
-                        }),
+                          ),
+                          const SizedBox(height: 16),
 
-                        const SizedBox(height: 8),
-                      ],
+                          // ===== TÍTULO DISPOSITIVOS + ADICIONAR (C3) =====
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Dispositivos',
+                                style: TextStyle(fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFE8EAED))),
+                              GestureDetector(
+                                onTap: _adicionarSensor,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: const Color(0xFF4DB6AC)
+                                        .withValues(alpha: 0.12),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.add, size: 16,
+                                        color: Color(0xFF4DB6AC)),
+                                      SizedBox(width: 4),
+                                      Text('Adicionar',
+                                        style: TextStyle(fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF4DB6AC))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // ===== LISTA DE DISPOSITIVOS (C2 CORRIGIDO) =====
+                          ..._dispositivos.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final dispositivo = entry.value;
+                            final ativo = dispositivo['ativo'] as bool;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF111923),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFF1E2A38), width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: ativo
+                                          ? const Color(0xFF4DB6AC)
+                                              .withValues(alpha: 0.12)
+                                          : const Color(0xFF1E2A38),
+                                    ),
+                                    child: Icon(
+                                        _iconeDoTipo(
+                                            dispositivo['tipo'] as String),
+                                      size: 20,
+                                      color: ativo
+                                          ? const Color(0xFF4DB6AC)
+                                          : const Color(0xFF6B7D8C)),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                            dispositivo['nome'] as String,
+                                          style: TextStyle(fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: ativo
+                                                ? const Color(0xFFE8EAED)
+                                                : const Color(0xFF8B9DAB))),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                            ativo
+                                                ? 'Ativo'
+                                                : 'Desativado',
+                                          style: TextStyle(fontSize: 12,
+                                            color: ativo
+                                                ? const Color(0xFF4DB6AC)
+                                                : const Color(0xFF6B7D8C))),
+                                      ],
+                                    ),
+                                  ),
+                                  // Ícone de remover
+                                  GestureDetector(
+                                    onTap: () => _removerSensor(index),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      child: const Icon(Icons.delete_outline,
+                                        size: 18,
+                                        color: Color(0xFF6B7D8C)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // ===== TOGGLE DO DISPOSITIVO (persiste) =====
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _alternarDispositivo(dispositivo),
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      width: 44,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                        color: ativo
+                                            ? const Color(0xFF4DB6AC)
+                                            : const Color(0xFF1E2A38),
+                                      ),
+                                      child: AnimatedAlign(
+                                        duration: const Duration(
+                                            milliseconds: 200),
+                                        alignment: ativo
+                                            ? Alignment.centerRight
+                                            : Alignment.centerLeft,
+                                        child: Container(
+                                          margin:
+                                              const EdgeInsets.all(2),
+                                          width: 20,
+                                          height: 20,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+
+                          const SizedBox(height: 8),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

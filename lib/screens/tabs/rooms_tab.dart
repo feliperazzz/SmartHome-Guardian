@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:mobile/screens/room_detail_screen.dart';
 import 'package:mobile/services/system_service.dart';
+import 'package:mobile/services/device_service.dart';  
 
 class RoomsTab extends StatefulWidget {
   const RoomsTab({super.key});
@@ -11,6 +11,18 @@ class RoomsTab extends StatefulWidget {
 }
 
 class _RoomsTabState extends State<RoomsTab> {
+
+  @override
+  void initState() {
+    super.initState();
+    // Restaura a proteção salva de sessões anteriores
+    for (final ambiente in _ambientes) {
+      final salvo =
+          DeviceService.instance.ambientesSeguros[ambiente['nome']];
+      if (salvo != null) ambiente['seguro'] = salvo;
+    }
+  }
+  
   // ===== DADOS DOS AMBIENTES =====
   final List<Map<String, dynamic>> _ambientes = [
     {'nome': 'Sala', 'icon': Icons.weekend_outlined, 'seguro': true, 'sensores': 2},
@@ -158,28 +170,6 @@ class _RoomsTabState extends State<RoomsTab> {
           ),
         ),
       ],
-=======
-
-class RoomsTab extends StatelessWidget {
-  const RoomsTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.grid_view_outlined, size: 48, color: Color(0xFF2A3B4D)),
-          SizedBox(height: 16),
-          Text('Ambientes',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-              color: Color(0xFFE8EAED))),
-          SizedBox(height: 8),
-          Text('Em construção — próximo passo!',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6B7D8C))),
-        ],
-      ),
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
     );
   }
 }

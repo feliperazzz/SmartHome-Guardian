@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:mobile/services/alerts_service.dart';
-=======
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
 
 class AlertsTab extends StatefulWidget {
   const AlertsTab({super.key});
@@ -27,7 +24,7 @@ class _AlertsTabState extends State<AlertsTab>
       'hora': 'Hoje, 09:15',
       'tipo': 'seguranca',
       'lido': false,
-      'icone': Icons.door_front_door_outlined,
+      'icone': Icons.meeting_room_outlined,
     },
     {
       'titulo': 'Movimento detectado',
@@ -59,7 +56,7 @@ class _AlertsTabState extends State<AlertsTab>
       'hora': 'Ontem, 14:50',
       'tipo': 'seguranca',
       'lido': true,
-      'icone': Icons.door_front_door_outlined,
+      'icone': Icons.meeting_room_outlined,
     },
   ];
 
@@ -74,27 +71,19 @@ class _AlertsTabState extends State<AlertsTab>
     final alerta = _alertasFiltrados[indexFiltrado];
     final originalIndex = _alertas.indexOf(alerta);
     setState(() => _alertas[originalIndex]['lido'] = true);
-<<<<<<< HEAD
     // Sincroniza com o card da Home
     AlertsService.instance.atualizarNaoLidos(_naoLidos);
-=======
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
   }
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-=======
-
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
 
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-<<<<<<< HEAD
       CurvedAnimation(
         parent: _entranceController,
         curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
@@ -106,15 +95,6 @@ class _AlertsTabState extends State<AlertsTab>
         parent: _entranceController,
         curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
       ),
-=======
-      CurvedAnimation(parent: _entranceController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
-    );
-
-    _listOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOut)),
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
     );
 
     _entranceController.forward();
@@ -163,11 +143,7 @@ class _AlertsTabState extends State<AlertsTab>
                           alerta['lido'] = true;
                         }
                       });
-<<<<<<< HEAD
-                      // Sincroniza com o card da Home
                       AlertsService.instance.atualizarNaoLidos(0);
-=======
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -214,25 +190,44 @@ class _AlertsTabState extends State<AlertsTab>
             child: _alertasFiltrados.isEmpty
                 ? const Center(
                     child: Text('Nenhum alerta neste filtro',
-<<<<<<< HEAD
                       style: TextStyle(
                         color: Color(0xFF6B7D8C), fontSize: 14)),
-=======
-                      style: TextStyle(color: Color(0xFF6B7D8C), fontSize: 14)),
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                     itemCount: _alertasFiltrados.length,
                     itemBuilder: (context, index) {
                       final alerta = _alertasFiltrados[index];
-                      return _buildAlertaCard(
-                        titulo: alerta['titulo'] as String,
-                        ambiente: alerta['ambiente'] as String,
-                        hora: alerta['hora'] as String,
-                        icone: alerta['icone'] as IconData,
-                        lido: alerta['lido'] as bool,
-                        onTap: () => _marcarComoLido(index),
+                      // ===== BLOCO E: SWIPE PARA MARCAR COMO LIDO =====
+                      return Dismissible(
+                        key: ObjectKey(alerta),
+                        direction: DismissDirection.startToEnd,
+                        confirmDismiss: (direction) async {
+                          if (!(alerta['lido'] as bool)) {
+                            _marcarComoLido(index);
+                          }
+                          return false; // não remove: só marca como lido
+                        },
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(left: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4DB6AC)
+                                .withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.check_circle_outline,
+                              color: Color(0xFF4DB6AC), size: 26),
+                        ),
+                        child: _buildAlertaCard(
+                          titulo: alerta['titulo'] as String,
+                          ambiente: alerta['ambiente'] as String,
+                          hora: alerta['hora'] as String,
+                          icone: alerta['icone'] as IconData,
+                          lido: alerta['lido'] as bool,
+                          onTap: () => _marcarComoLido(index),
+                        ),
                       );
                     },
                   ),
@@ -338,12 +333,8 @@ class _AlertsTabState extends State<AlertsTab>
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-<<<<<<< HEAD
                             color: const Color(0xFFFFB74D)
                                 .withValues(alpha: 0.15),
-=======
-                            color: const Color(0xFFFFB74D).withValues(alpha: 0.15),
->>>>>>> 3f01e8d6dcced2c2092341912116da1b2675cc18
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text('NOVO',
