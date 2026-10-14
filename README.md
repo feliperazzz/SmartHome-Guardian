@@ -39,7 +39,7 @@ O objetivo deste mês é ter todas as 5 telas prontas, com navegação fluida, o
 - [x] **Semana 1:** Construção da tela **Home** (Status da casa, temperatura e último evento).
 - [x] **Semana 2:** Construção da tela de **Alertas** (Lista de notificações).
 - [x] **Semana 3:** Construção da tela de **Histórico** (Timeline de eventos anteriores).
-- [ ] **Semana 4:** Construção da tela de **Perfil** e finalização do roteamento entre telas (Navigation).
+- [x] **Semana 4:** Construção da tela de **Perfil** e finalização do roteamento entre telas (Navigation).
 
 ### Integração e Tempo Real (O Coração do App)
 O mês mais crítico. O aplicativo será conectado ao Backend em Node.js criado pelo Rafael.
