@@ -3,6 +3,8 @@ import 'tabs/home_tab.dart';
 import 'tabs/alerts_tab.dart';
 import 'tabs/rooms_tab.dart';
 import 'tabs/profile_tab.dart';
+// ===== ETAPA 6.6: TEMPO REAL =====
+import 'package:mobile/services/socket_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String nome;
@@ -53,12 +55,37 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
 
     _entranceController.forward();
+
+    // ===== ETAPA 6.6: AVISO AO VIVO QUANDO CHEGA EVENTO NOVO =====
+    SocketService.instance.onNovoEvento = (evento) {
+      if (!mounted) return;
+      final titulo = (evento['titulo'] ?? 'Novo evento de segurança').toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '🔔 $titulo',
+            style: const TextStyle(color: Color(0xFFE8EAED)),
+          ),
+          backgroundColor: const Color(0xFF111923),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFF4DB6AC), width: 1),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    };
+    // Conecta o socket (usa o token JWT salvo no login)
+    SocketService.instance.conectar();
   }
 
   @override
   void dispose() {
     _gridController.dispose();
     _entranceController.dispose();
+    // ===== ETAPA 6.6: desconecta ao sair da dashboard =====
+    SocketService.instance.desconectar();
     super.dispose();
   }
 
@@ -246,7 +273,6 @@ class DashboardGridPainter extends CustomPainter {
       canvas.drawCircle(Offset(crossX, crossY), 1.5, corePaint);
     }
   }
-
-  @override
+ @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

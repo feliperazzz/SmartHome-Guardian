@@ -1,5 +1,5 @@
 name: mobile
-description: "A new Flutter project."
+description: "Smart Home Guardian - aplicativo móvel do TCC."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -14,6 +14,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.5
 
+  # PARTE 6 — integração com o backend:
+  http: ^1.2.0                    # chamadas REST (login, ambientes, eventos)
+  socket_io_client: ^2.0.3        # alertas em tempo real (WebSocket)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -25,5 +29,3 @@ flutter:
 
   assets:
     - assets/logoSHG.png
-
-shared_preferences: ^2.2.2

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/screens/login_screen.dart';
+// ===== ETAPA 7.2: SPLASH INTELIGENTE =====
+import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/user_service.dart';
+import 'package:mobile/screens/dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -105,10 +110,50 @@ class _SplashScreenState extends State<SplashScreen>
     _startSequence();
   }
 
-  // ===== SEQUÊNCIA: entra → espera → sai → navega pro login =====
+  // ===== ETAPA 7.2 PRINCIPAL: DECISÃO INTELIGENTE DE NAVEGAÇÃO =====
+  // Anima → checa se já existe sessão válida → dashboard OU login
   Future<void> _startSequence() async {
     _entranceController.forward();
     await Future.delayed(const Duration(milliseconds: 2200));
+    if (!mounted) return;
+
+    // ===== DECISÃO: token salvo + válido? → dashboard direto =====
+    final token = await ApiClient.getToken();
+
+    if (token != null && token.isNotEmpty) {
+      // Valida o token no backend com uma chamada leve (ambientes).
+      // Se expirou (ex.: a secret do JWT mudou), cai no login.
+      try {
+        await ApiClient.listarAmbientes().timeout(
+          const Duration(seconds: 4),
+        );
+
+        // Sessão válida! Restaura os dados do usuário salvos no aparelho
+        final prefs = await SharedPreferences.getInstance();
+        UserService.instance.atualizar(
+          novoNome: prefs.getString('nomeUsuario') ?? 'Usuário',
+          novoEmail: prefs.getString('emailUsuario') ?? '',
+        );
+
+        if (!mounted) return;
+        await _exitController.forward();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DashboardScreen(
+              nome: UserService.instance.nome.value,
+            ),
+          ),
+        );
+        return; // decisão tomada: dashboard
+      } catch (_) {
+        // Token inválido/expirado ou backend offline → limpa e vai pro login
+        await ApiClient.logout();
+      }
+    }
+
+    // ===== CAMINHO DE SEMPRE: sem sessão → login =====
     if (!mounted) return;
     await _exitController.forward();
     if (!mounted) return;
@@ -246,7 +291,6 @@ class SplashGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const spacing = 35.0;
-
     final linePaint = Paint()
       ..color = const Color(0xFF1A2535).withValues(alpha: 0.6)
       ..strokeWidth = 0.5;

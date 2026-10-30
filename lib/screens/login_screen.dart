@@ -3,6 +3,8 @@ import 'package:mobile/screens/signup_screen.dart';
 import 'package:mobile/screens/forgot_password_screen.dart';
 import 'package:mobile/screens/dashboard_screen.dart';
 import 'package:mobile/services/user_service.dart';
+// ===== ALTERAÇÃO: import do API CLIENT =====
+import 'package:mobile/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,8 +34,9 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  // ===== ALTERAÇÃO 1: controller do e-mail =====
   final TextEditingController _emailController = TextEditingController();
+  // ===== ALTERAÇÃO: controller da senha (faltava!) =====
+  final TextEditingController _senhaController = TextEditingController();
 
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -156,35 +159,58 @@ class _LoginScreenState extends State<LoginScreen>
     _floatController.dispose();
     _breathController.dispose();
     _entranceController.dispose();
-    // ===== ALTERAÇÃO 2: libera o controller =====
     _emailController.dispose();
+    // ===== ALTERAÇÃO: libera o controller da senha =====
+    _senhaController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
   }
 
-  // ===== ALTERAÇÃO 3: deriva o nome a partir do e-mail =====
-  String _nomeDoEmail(String email) {
-    if (email.isEmpty || !email.contains('@')) return 'Felipe';
-    final parte = email.split('@').first;
-    if (parte.isEmpty) return 'Felipe';
-    final primeira = parte[0].toUpperCase();
-    final resto = parte.length > 1 ? parte.substring(1).toLowerCase() : '';
-    return '$primeira$resto';
+  // ===== ALTERAÇÃO: SnackBar no estilo do app =====
+  void _mostrarErro(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mensagem,
+          style: const TextStyle(color: Color(0xFFE8EAED)),
+        ),
+        backgroundColor: const Color(0xFF111923),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFE53935), width: 1),
+        ),
+      ),
+    );
   }
 
-  void _handleLogin() {
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+  // ===== ALTERAÇÃO PRINCIPAL: LOGIN REAL contra o backend =====
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text;
 
-      // ===== ALTERAÇÃO 4: atualiza o UserService antes de entrar =====
+    // Validação local rápida (antes de gastar uma chamada de rede)
+    if (email.isEmpty || senha.isEmpty) {
+      _mostrarErro('Preencha e-mail e senha');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Chama a API real: POST /api/auth/login
+      final data = await ApiClient.login(email: email, senha: senha);
+
+      if (!mounted) return;
+
+      // Alimenta o UserService com os dados REAIS do banco
       UserService.instance.atualizar(
-        novoNome: _nomeDoEmail(_emailController.text.trim()),
-        novoEmail: _emailController.text.trim(),
+        novoNome: data['usuario']['nome'],
+        novoEmail: data['usuario']['email'],
       );
 
+      // O token já foi salvo no celular pelo ApiClient.login()
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -193,10 +219,17 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
       );
-    });
+    } catch (e) {
+      if (!mounted) return;
+      // A API devolve mensagens como "Credenciais inválidas"
+      final mensagem = e.toString().replaceFirst('Exception: ', '');
+      _mostrarErro(mensagem);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  // ===== BLOCO E: BIOMETRIA SIMULADA =====
+  // ===== BLOCO E: BIOMETRIA SIMULADA (mantida — sem rota de biometria no backend) =====
   void _handleBiometric() {
     showDialog(
       context: context,
@@ -483,7 +516,6 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       child: TextField(
         focusNode: _emailFocusNode,
-        // ===== ALTERAÇÃO 1 (parte 2): controller ligado ao campo =====
         controller: _emailController,
         keyboardType: TextInputType.emailAddress,
         style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 15),
@@ -537,6 +569,8 @@ class _LoginScreenState extends State<LoginScreen>
       child: TextField(
         focusNode: _passwordFocusNode,
         obscureText: _obscurePassword,
+        // ===== ALTERAÇÃO: controller ligado ao campo =====
+        controller: _senhaController,
         style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 15),
         decoration: InputDecoration(
           hintText: 'Senha',
@@ -742,7 +776,7 @@ class DynamicGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldPainter) => true;
 }
 
 // ===== BLOCO E: DIALOG DE BIOMETRIA SIMULADA =====

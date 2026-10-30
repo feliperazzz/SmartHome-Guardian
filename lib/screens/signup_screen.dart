@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+// ===== ETAPA 7.1: CADASTRO REAL =====
+import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/user_service.dart';
+import 'package:mobile/screens/dashboard_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -178,20 +182,73 @@ class _SignupScreenState extends State<SignupScreen>
     return isValid;
   }
 
-  void _handleSignup() {
+  // ===== ETAPA 7.1 PRINCIPAL: CADASTRO REAL NO BACKEND =====
+  Future<void> _handleSignup() async {
     if (!_validateFields()) return;
+
+    final nome = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final senha = _passwordController.text;
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
+
+    try {
+      // 1. Cadastra no banco: POST /api/auth/cadastrar
+      await ApiClient.cadastrar(nome: nome, email: email, senha: senha);
+
+      // 2. Sucesso! Loga automaticamente pra pegar o token e entrar direto
+      await ApiClient.login(email: email, senha: senha);
+
       if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Conta criada com sucesso!'),
-          backgroundColor: Color(0xFF00897B),
+
+      // 3. Alimenta o UserService com os dados reais do novo usuário
+      UserService.instance.atualizar(novoNome: nome, novoEmail: email);
+
+      // 4. Entra direto na dashboard (usuário novo já usa o app!)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardScreen(
+            nome: UserService.instance.nome.value,
+          ),
         ),
       );
-      Navigator.pop(context);
-    });
+    } catch (e) {
+      if (!mounted) return;
+      final mensagem = e.toString().replaceFirst('Exception: ', '');
+
+      // ===== ERRO ESPECÍFICO: e-mail já existe → marca no campo certo =====
+      final m = mensagem.toLowerCase();
+      if (m.contains('já cadastrado') ||
+          m.contains('ja cadastrado') ||
+          m.contains('já existe') ||
+          m.contains('em uso') ||
+          m.contains('duplicate')) {
+        setState(() {
+          _emailError = 'Este e-mail já está cadastrado';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // ===== Outros erros → SnackBar no padrão do app =====
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            mensagem,
+            style: const TextStyle(color: Color(0xFFE8EAED)),
+          ),
+          backgroundColor: const Color(0xFF111923),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFFEF5350), width: 1),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -594,7 +651,10 @@ class DynamicGridPainter extends CustomPainter {
 
     final double crossX = (scanX / spacing).floor() * spacing;
     final double crossY = (scanY / spacing).floor() * spacing;
-    if (crossX >= 0 && crossX < size.width && crossY >= 0 && crossY < size.height) {
+    if (crossX >= 0 &&
+        crossX < size.width &&
+        crossY >= 0 &&
+        crossY < size.height) {
       final Paint dotPaint = Paint()
         ..color = const Color(0xFF4DB6AC).withValues(alpha: 0.6)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);

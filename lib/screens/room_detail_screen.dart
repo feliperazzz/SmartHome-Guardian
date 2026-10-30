@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/services/device_service.dart';
-import 'package:mobile/services/system_service.dart';
+
 
 class RoomDetailScreen extends StatefulWidget {
   final String nome;
