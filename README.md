@@ -43,9 +43,9 @@ O objetivo deste mês é ter todas as 5 telas prontas, com navegação fluida, o
 
 ### Integração e Tempo Real (O Coração do App)
 O mês mais crítico. O aplicativo será conectado ao Backend em Node.js criado pelo Rafael.
-- [ ] **Semana 1:** Consumo da API REST (Autenticação/Login e busca de histórico).
-- [ ] **Semana 2:** Configuração do Socket.io no Flutter.
-- [ ] **Semana 3:** Integração dos gatilhos de IoT simulado (App reage automaticamente quando um evento é disparado na Web).
+- [x] **Semana 1:** Consumo da API REST (Autenticação/Login e busca de histórico).
+- [x] **Semana 2:** Configuração do Socket.io no Flutter.
+- [x] **Semana 3:** Integração dos gatilhos de IoT simulado (App reage automaticamente quando um evento é disparado na Web).
 - [ ] **Semana 4:** Tratamento de erros, loading states e refinamento de conexões perdidas.
 
 ### Polimento, Testes e Apresentação
@@ -61,4 +61,4 @@ O mês mais crítico. O aplicativo será conectado ao Backend em Node.js criado 
 1. Certifique-se de ter o [Flutter SDK](https://docs.flutter.dev/get-started/install) instalado.
 2. Clone este repositório:
    ```bash
-   git clone [URL_DO_SEU_REPOSITORIO]
+   git clone [https://github.com/feliperazzz/SmartHome-Guardian.git]

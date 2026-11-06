@@ -1,7 +1,7 @@
 // ============================================================
 // API CLIENT - SMART HOME GUARDIAN
 // Centraliza toda a comunicação com o backend Node.js:
-// health, cadastro, login (JWT), ambientes e eventos
+// health, cadastro, login (JWT), ambientes, eventos e sistema
 // ============================================================
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb; // detecta se roda no Chrome
@@ -39,9 +39,14 @@ class ApiClient {
     return prefs.getString('token');
   }
 
+  // ===== 7.3 — LOGOUT REAL =====
+  // Limpa TUDO que o login salvou: token JWT + nome + email.
+  // Assim o splash inteligente (7.2) NÃO loga de volta sozinho.
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+    await prefs.remove('token');         // apaga o JWT
+    await prefs.remove('nomeUsuario');   // apaga o nome salvo no login
+    await prefs.remove('emailUsuario');  // apaga o email salvo no login
   }
 
   // ---------- HEADERS (injeta o Bearer token automaticamente) ----------
@@ -152,5 +157,39 @@ class ApiClient {
     if (resp.statusCode != 200) {
       throw Exception('Erro ao marcar evento como lido (${resp.statusCode})');
     }
+  }
+
+  // ===== 7.7 — SISTEMA (armar/desarmar no banco) =====
+  // O estado real fica na coluna "armado" do usuário logado.
+  // Retorna true se ficou armado, false se ficou desarmado.
+  static Future<bool> armarSistema() async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/api/sistema/armar'),
+      headers: await _headers(),
+    );
+    if (resp.statusCode == 200) return true;
+    throw Exception('Erro ao armar o sistema (${resp.statusCode})');
+  }
+
+  static Future<bool> desarmarSistema() async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/api/sistema/desarmar'),
+      headers: await _headers(),
+    );
+    if (resp.statusCode == 200) return false;
+    throw Exception('Erro ao desarmar o sistema (${resp.statusCode})');
+  }
+
+  // ===== 7.7 — estado atual do sistema (pra Home carregar do banco) =====
+  static Future<bool> estadoSistema() async {
+    final resp = await http.get(
+      Uri.parse('$baseUrl/api/sistema/estado'),
+      headers: await _headers(),
+    );
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      return data['armado'] == true || data['armado'] == 1;
+    }
+    throw Exception('Erro ao buscar estado do sistema (${resp.statusCode})');
   }
 }

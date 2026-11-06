@@ -7,45 +7,52 @@ class SystemService {
   // ===== ESTADO GLOBAL DO SISTEMA =====
 
   // Sistema armado (true) ou desarmado (false)
+  // ===== 7.7: agora começa neutro — o valor REAL vem do banco =====
   final ValueNotifier<bool> sistemaArmado = ValueNotifier<bool>(true);
 
   // Sem comunicação com a residência (ativa quando desarma)
   final ValueNotifier<bool> semComunicacao = ValueNotifier<bool>(false);
 
-  // Sensores ativos (0 quando desarmado)
-  final ValueNotifier<int> sensoresAtivos = ValueNotifier<int>(5);
+  // Sensores ativos (sem tabela de sensores ainda — 7.7 opção A)
+  final ValueNotifier<int> sensoresAtivos = ValueNotifier<int>(0);
 
-  // Ambientes seguros (0 quando desarmado)
-  final ValueNotifier<int> ambientesSeguros = ValueNotifier<int>(5);
+  // Ambientes seguros (alimentado pela Home/Ambientes com dados reais)
+  final ValueNotifier<int> ambientesSeguros = ValueNotifier<int>(0);
 
   // ===== AÇÕES =====
 
-  /// Arma o sistema: tudo volta ao estado de proteção total
+  /// Arma o sistema (chamar DEPOIS de confirmar na API)
   void armar() {
     sistemaArmado.value = true;
     semComunicacao.value = false;
-    sensoresAtivos.value = 5;
-    ambientesSeguros.value = 5;
   }
 
-  /// Desarma o sistema: tudo cai pra zero e perde comunicação
+  /// Desarma o sistema (chamar DEPOIS de confirmar na API)
   void desarmar() {
     sistemaArmado.value = false;
     semComunicacao.value = true;
-    sensoresAtivos.value = 0;
-    ambientesSeguros.value = 0;
   }
 
-  /// Atualiza a contagem de sensores ativos (usado ao cadastrar/remover sensores)
+  /// ===== 7.7 NOVO: sincroniza o estado vindo do banco =====
+  /// (usado ao carregar a Home — o toggle reflete o que está no banco)
+  void sincronizarEstado(bool armado) {
+    sistemaArmado.value = armado;
+    semComunicacao.value = !armado;
+  }
+
+  /// Atualiza a contagem de sensores ativos
   void atualizarSensores(int valor) => sensoresAtivos.value = valor;
 
-  /// Atualiza a contagem de ambientes seguros (usado pela aba Ambientes)
+  /// Atualiza a contagem de ambientes seguros
   void atualizarAmbientes(int valor) => ambientesSeguros.value = valor;
 
   // ===== RESET (ao sair da conta) =====
 
-  /// Volta tudo ao estado inicial (chamar no logout)
+  /// Volta ao estado inicial (chamar no logout)
   void reset() {
-    armar();
+    sistemaArmado.value = true;
+    semComunicacao.value = false;
+    sensoresAtivos.value = 0;
+    ambientesSeguros.value = 0;
   }
 }

@@ -3,6 +3,7 @@ import 'package:mobile/screens/login_screen.dart';
 import 'package:mobile/screens/edit_profile_screen.dart';
 import 'package:mobile/screens/settings_screen.dart';
 import 'package:mobile/services/user_service.dart';
+import 'package:mobile/services/api_client.dart'; // ===== 7.3: logout real =====
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -15,8 +16,14 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _notificacoes = true;
   bool _biometria = false;
 
-  void _logout() {
+  // ===== 7.3 — LOGOUT REAL =====
+  // 1. ApiClient.logout() apaga token + nome + email do aparelho
+  // 2. UserService.reset() limpa os dados em memória (tela)
+  // 3. Dialog de confirmação → volta pro Login
+  Future<void> _logout() async {
+    await ApiClient.logout();
     UserService.instance.reset();
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -224,7 +231,6 @@ class _ProfileTabState extends State<ProfileTab> {
       },
     );
   }
-
   Widget _secao(String titulo) {
     return Align(
       alignment: Alignment.centerLeft,

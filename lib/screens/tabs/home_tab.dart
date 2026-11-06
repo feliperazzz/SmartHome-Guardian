@@ -47,6 +47,15 @@ class _HomeTabState extends State<HomeTab> {
       final eventos = await ApiClient.listarEventos();
       final pendentes = await ApiClient.listarPendentes();
 
+      // ===== DEBUG TEMPORÁRIO — apagar depois =====
+      print('🔍 DEBUG ambientes: ${ambientes.length}');
+      print('🔍 DEBUG eventos: ${eventos.length}');
+      print('🔍 DEBUG pendentes: ${pendentes.length}');
+      for (final ev in eventos.take(3)) {
+        print('🔍 DEBUG evento: id=${ev['id']} titulo=${ev['titulo']} lido=${ev['lido']}');
+      }
+      // ============================================
+
       if (!mounted) return;
       setState(() {
         _ambientes = List<Map<String, dynamic>>.from(ambientes);
@@ -54,7 +63,14 @@ class _HomeTabState extends State<HomeTab> {
       });
       // Sincroniza o badge do sino com o banco (dados reais!)
       AlertsService.instance.atualizarNaoLidos(pendentes.length);
-    } catch (_) {
+      // ===== 7.5: Home também alimenta os contadores do SystemService =====
+      SystemService.instance.atualizarAmbientes(ambientes.length);
+      // ===== 7.7: estado real do sistema vindo do banco =====
+      final armado = await ApiClient.estadoSistema();
+      print('🔍 DEBUG armado = $armado'); // ← TEMPORÁRIO
+      SystemService.instance.sincronizarEstado(armado);
+    } catch (e) {
+      print('🔍 DEBUG ERRO em _carregarDados: $e'); // ← TEMPORÁRIO
       if (!mounted) return;
       setState(() => _erroConexao = true);
     } finally {
@@ -207,7 +223,6 @@ class _HomeTabState extends State<HomeTab> {
                 );
               },
             ),
-
             // ===== ALTERAÇÃO: BANNER DE ERRO DE CONEXÃO COM O SERVIDOR =====
             if (_erroConexao)
               Container(
@@ -401,7 +416,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Card 4: Controle do Sistema (estado local por enquanto)
+                  // Card 4: Controle do Sistema (===== 7.7: estado REAL no banco =====)
                   Expanded(
                     child: ValueListenableBuilder<bool>(
                       valueListenable: SystemService.instance.sistemaArmado,
@@ -434,11 +449,24 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                               const SizedBox(height: 10),
                               GestureDetector(
-                                onTap: () {
-                                  if (armado) {
-                                    SystemService.instance.desarmar();
-                                  } else {
-                                    SystemService.instance.armar();
+                                // ===== 7.7: toggle chama a API e o estado
+                                // fica salvo na coluna "armado" do banco =====
+                                onTap: () async {
+                                  try {
+                                    if (armado) {
+                                      await ApiClient.desarmarSistema();
+                                      SystemService.instance.desarmar();
+                                    } else {
+                                      await ApiClient.armarSistema();
+                                      SystemService.instance.armar();
+                                    }
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Erro ao atualizar o sistema')),
+                                    );
                                   }
                                 },
                                 child: AnimatedContainer(
@@ -616,7 +644,6 @@ class _HomeTabState extends State<HomeTab> {
                         ),
             ),
             const SizedBox(height: 20),
-
             // ===== NOTIFICAÇÕES RECENTES (B5 — agora do BANCO!) =====
             const Text(
               'Notificações Recentes',

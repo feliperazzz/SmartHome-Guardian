@@ -117,15 +117,28 @@ class _AlertsTabState extends State<AlertsTab>
     final t = tipo.toLowerCase();
     if (t.contains('movimento')) return Icons.directions_walk_outlined;
     if (t.contains('porta')) return Icons.meeting_room_outlined;
+    if (t.contains('invasao') || t.contains('invasão')) {
+      return Icons.gpp_bad_outlined;
+    }
+    if (t.contains('temperatura')) return Icons.device_thermostat_outlined;
     if (t.contains('fumaca') || t.contains('fumaça')) {
       return Icons.smoke_free_outlined;
     }
     return Icons.shield_outlined;
   }
 
-  // ===== ALTERAÇÃO: filtra pelos tipos REAIS do banco =====
+  // ===== CORREÇÃO: filtra por GRUPOS (antes comparava com a string
+  // "seguranca", que não existe no banco → filtro sempre vazio) =====
   List<Map<String, dynamic>> get _alertasFiltrados {
     if (_filtro == 'todos') return _alertas;
+    if (_filtro == 'seguranca') {
+      return _alertas.where((a) {
+        final t = (a['tipo'] ?? '').toString().toLowerCase();
+        return t == 'porta_aberta' ||
+            t == 'invasao' ||
+            t == 'temperatura_elevada';
+      }).toList();
+    }
     return _alertas
         .where((a) => (a['tipo'] ?? '').toString().toLowerCase() == _filtro)
         .toList();
